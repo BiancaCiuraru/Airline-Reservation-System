@@ -62,9 +62,9 @@ public class Register extends JPanel {
                     statement.setString( 2, passwordField.getText() );
                     statement.execute();
                     frame.setVisible( false );
-                    new SearchFrame().setVisible(true);
+                    new LoginFrame().setVisible(true);
                 }catch (SQLException e) {
-                    if(e.getErrorCode() == 20001){
+                    if(e.getErrorCode() == 20006){
                         JOptionPane.showMessageDialog( frame, "The user exist in the database.", "Please Enter Again", JOptionPane.WARNING_MESSAGE );
                         return;
                     }

@@ -299,11 +299,70 @@ BEGIN
     end loop;
 END;
 /
-----------------------------GENERARE RUTA-------------------------------------------------
-CREATE OR REPLACE PROCEDURE generareRuta(sursa_zbor varchar2, destinatie_zbor varchar2, data_plecare_zbor date, tip_clasa varchar2) AS
+------------------------------GENERARE RUTA-------------------------------------------------
+--CREATE OR REPLACE PROCEDURE generareRuta(sursa_zbor varchar2, destinatie_zbor varchar2, data_plecare_zbor date, tip_clasa varchar2) AS
+--    CURSOR lista_rute IS SELECT * FROM rute r join orar_rute o on r.id_zbor=o.id_zbor join clasa c on c.id_zbor=r.id_zbor and c.nume_clasa=tip_clasa;
+--    Cursor lista_escale IS SELECT * FROM rute r join orar_rute o on r.id_zbor=o.id_zbor join clasa c on c.id_zbor=r.id_zbor and c.nume_clasa=tip_clasa;
+--    v_result int;    
+--    
+--    no_result EXCEPTION;
+--    PRAGMA EXCEPTION_INIT(user_existent, -20007);
+--    no_places EXCEPTION;
+--    PRAGMA EXCEPTION_INIT(user_existent, -20008);
+--    no_flights EXCEPTION;
+--    PRAGMA EXCEPTION_INIT(user_existent, -20009);
+--begin
+--    v_result:=0;
+--    FOR v_std_linie IN lista_rute LOOP    
+--        if (v_std_linie.sursa=sursa_zbor) then 
+--            if(v_std_linie.destinatie=destinatie_zbor) then
+--                if(v_std_linie.data_plecare=data_plecare_zbor) then
+--                    if(v_std_linie.nr_locuri_disponibile>0) then
+--                        DBMS_OUTPUT.PUT_LINE('Zborul este: ' || v_std_linie.nr_zbor || ' de la ' || sursa_zbor || ' spre ' || destinatie_zbor || ' in data de ' || data_plecare_zbor || ' ora ' || v_std_linie.ora_plecare);
+--                        v_result:=1;
+--                    else
+--                        v_result:=2;
+--                    end if;
+--                else 
+--                    v_result:=3;
+--                end if;
+--            else
+--                for v_linie in lista_escale loop
+--                    if(v_linie.sursa=v_std_linie.destinatie and v_linie.destinatie=destinatie_zbor and v_linie.data_plecare=data_plecare_zbor and v_linie.nr_locuri_disponibile>0) then
+--                        if((v_linie.data_plecare=v_std_linie.data_sosire or v_linie.data_plecare=v_std_linie.data_sosire+1) and v_std_linie.ora_sosire < v_linie.ora_plecare) then
+--                            DBMS_OUTPUT.PUT_LINE('Zborul este: ' || v_std_linie.nr_zbor || ' de la ' || sursa_zbor || ' spre ' || destinatie_zbor || ' in data de ' || data_plecare_zbor || ' ora ' || v_std_linie.ora_plecare || ' cu escala la ' || v_linie.sursa || ' plecarea de aici facandu-se cu zborul ' || v_linie.nr_zbor);                                               
+--                            v_result:=1;
+--                        end if;
+--                    end if;
+--                end loop;
+--            end if;
+--        end if;
+--    END LOOP;  
+--    
+--    if(v_result=0) then
+--        raise no_result;
+--    elsif(v_result=2) then 
+--         raise no_places;
+--    elsif(v_result=3)then
+--        raise no_flights;
+--    end if;
+--end;
+--/
+
+create or replace type varchar_list AS varray(1000) of varchar2(50);
+/
+
+CREATE OR REPLACE FUNCTION returnRuta(sursa_zbor varchar2, destinatie_zbor varchar2, data_plecare_zbor date, tip_clasa varchar2) return varchar_list IS
     CURSOR lista_rute IS SELECT * FROM rute r join orar_rute o on r.id_zbor=o.id_zbor join clasa c on c.id_zbor=r.id_zbor and c.nume_clasa=tip_clasa;
     Cursor lista_escale IS SELECT * FROM rute r join orar_rute o on r.id_zbor=o.id_zbor join clasa c on c.id_zbor=r.id_zbor and c.nume_clasa=tip_clasa;
-    v_result int;
+    v_result int;    
+    
+    no_result EXCEPTION;
+    PRAGMA EXCEPTION_INIT(no_result, -20007);
+    no_places EXCEPTION;
+    PRAGMA EXCEPTION_INIT(no_places, -20008);
+    no_flights EXCEPTION;
+    PRAGMA EXCEPTION_INIT(no_flights, -20009);
 begin
     v_result:=0;
     FOR v_std_linie IN lista_rute LOOP    
@@ -311,7 +370,7 @@ begin
             if(v_std_linie.destinatie=destinatie_zbor) then
                 if(v_std_linie.data_plecare=data_plecare_zbor) then
                     if(v_std_linie.nr_locuri_disponibile>0) then
-                        DBMS_OUTPUT.PUT_LINE('Zborul este: ' || v_std_linie.nr_zbor || ' de la ' || sursa_zbor || ' spre ' || destinatie_zbor || ' in data de ' || data_plecare_zbor || ' ora ' || v_std_linie.ora_plecare);
+                        return varchar_list(v_std_linie.nr_zbor, sursa_zbor, destinatie_zbor, data_plecare_zbor, v_std_linie.ora_plecare);
                         v_result:=1;
                     else
                         v_result:=2;
@@ -323,7 +382,7 @@ begin
                 for v_linie in lista_escale loop
                     if(v_linie.sursa=v_std_linie.destinatie and v_linie.destinatie=destinatie_zbor and v_linie.data_plecare=data_plecare_zbor and v_linie.nr_locuri_disponibile>0) then
                         if((v_linie.data_plecare=v_std_linie.data_sosire or v_linie.data_plecare=v_std_linie.data_sosire+1) and v_std_linie.ora_sosire < v_linie.ora_plecare) then
-                            DBMS_OUTPUT.PUT_LINE('Zborul este: ' || v_std_linie.nr_zbor || ' de la ' || sursa_zbor || ' spre ' || destinatie_zbor || ' in data de ' || data_plecare_zbor || ' ora ' || v_std_linie.ora_plecare || ' cu escala la ' || v_linie.sursa || ' plecarea de aici facandu-se cu zborul ' || v_linie.nr_zbor);                                               
+                            return varchar_list( v_std_linie.nr_zbor, sursa_zbor, destinatie_zbor, data_plecare_zbor, v_std_linie.ora_plecare, v_linie.sursa, v_linie.nr_zbor);                                               
                             v_result:=1;
                         end if;
                     end if;
@@ -333,20 +392,21 @@ begin
     END LOOP;  
     
     if(v_result=0) then
-        DBMS_OUTPUT.PUT_LINE('Nu exista rezultate pentru aceasta cautare.');
+        raise no_result;
     elsif(v_result=2) then 
-         DBMS_OUTPUT.PUT_LINE('Zborul nu mai are locuri libere.');
+         raise no_places;
     elsif(v_result=3)then
-        DBMS_OUTPUT.PUT_LINE('Nu exista zboruri in aceasta data.');
+        raise no_flights;
     end if;
 end;
 /
 
-select * from rute where sursa='Iasi'; 
-select * from orar_rute where id_zbor=1841;
 set serveroutput on;
+declare
+    list_v varchar_list;
 begin
-    generareRuta('Iasi', 'Kabul','06-06-2019','Economica');
+    list_v:=returnRuta('Iasi','Kabul','06-06-2019','Economica');
+    DBMS_OUTPUT.PUT_LINE(list_v(1)||' '||list_v(2)||' '||list_v(3)||' '||list_v(4)||' '||list_v(5));
 end;
 /
 

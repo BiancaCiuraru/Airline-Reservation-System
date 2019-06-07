@@ -83,8 +83,8 @@ public class Search extends JPanel {
                 try {
                     Connection conn = DataBase.createConnection();
 
-                    CallableStatement statement = conn.prepareCall( "{?=call cautareRuta(?,?,?,?)}" );
-                    statement.registerOutParameter( 1, Types.ARRAY );
+                    CallableStatement statement = conn.prepareCall( "{?=call returnRuta(?,?,?,?)}" );
+                    statement.registerOutParameter( 1, Types.ARRAY);
                     statement.setString( 2, fromField.getText() );
                     statement.setString( 3, toField.getText() );
                     statement.setString( 4, journeyDateField.getText() );
@@ -94,8 +94,16 @@ public class Search extends JPanel {
                     frame.setVisible(false);
                     new TicketFrame().setVisible(true);
                 }catch (SQLException e) {
-                    if(e.getErrorCode() == 20001) {
-                        JOptionPane.showMessageDialog(frame, "The user does not exist in the database.", "Please Enter Again", JOptionPane.WARNING_MESSAGE);
+                    if(e.getErrorCode() == 20007) {
+                        JOptionPane.showMessageDialog(frame, "There are no results for this search.", "Please Enter Again", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    else if(e.getErrorCode() == 20009) {
+                        JOptionPane.showMessageDialog(frame, "There are no flights on this route.", "Please Enter Again", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    else if(e.getErrorCode() == 20008) {
+                        JOptionPane.showMessageDialog(frame, "There are no free seats for this flight.", "Please Enter Again", JOptionPane.WARNING_MESSAGE);
                         return;
                     }
                 }
